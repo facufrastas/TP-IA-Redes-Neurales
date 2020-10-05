@@ -1,0 +1,241 @@
+--------------------- Original ---------------------
+class Clasificador:
+    
+    def __init__(self):
+        self.w = None
+    
+    def fit(self, X, Y):
+//hstack lo que hace es poner todos los datos de X en una sola fila.
+//X.shape[0] lo que hace es considerar la cantidad de filas (n).
+        X_a = np.hstack((X, np.ones((X.shape[0],1)))) # vector de entradas aumentado
+//matmul hace la multiplicación de X traspuesta por X.
+        aux = np.matmul(np.transpose(X_a),X_a)
+//linalg.inv calcula la inversa de la matriz previamente obtenida.
+        aux = np.linalg.inv(aux)
+//Se hace la multiplicación de la matriz obtenida con la traspuesta de X.
+        aux = np.matmul(aux,np.transpose(X_a))
+//Se asigna a la matriz de pesos el valor de la multiplicación de la matriz obtenida con la matriz Y.
+        self.w = np.matmul(aux,Y)
+        
+    def predict(self, X):
+        if isinstance(self.w, np.ndarray):
+            X_a = np.hstack((X, np.ones((X.shape[0],1)))) # vector de entradas aumentado
+            output = np.matmul(X_a, self.w)
+#           Cuidado, la salida debe ser binaria!!
+            return np.heaviside(output -.5, np.zeros(output.shape))    
+        else:
+            print("Clasificador no entrenado")
+            return None
+
+    def save_params(self, nombre="params"):
+        pickle.dump(self.w, open(nombre + ".pickle", "wb"))
+        
+    def load_params(self, nombre="params"):
+        self.w = pickle.load(open(nombre + ".pickle"), "rb")
+		
+--------------------- Original sin comentarios ---------------------
+class Clasificador:
+    
+    def __init__(self):
+        self.w = None
+    
+    def fit(self, X, Y):
+        X_a = np.hstack((X, np.ones((X.shape[0],1)))) # vector de entradas aumentado
+        aux = np.matmul(np.transpose(X_a),X_a)
+        aux = np.linalg.inv(aux)
+        aux = np.matmul(aux,np.transpose(X_a))
+        self.w = np.matmul(aux,Y)
+        
+    def predict(self, X):
+        if isinstance(self.w, np.ndarray):
+            X_a = np.hstack((X, np.ones((X.shape[0],1)))) # vector de entradas aumentado
+            output = np.matmul(X_a, self.w)
+#           Cuidado, la salida debe ser binaria!!
+            return np.heaviside(output -.5, np.zeros(output.shape))    
+        else:
+            print("Clasificador no entrenado")
+            return None
+
+    def save_params(self, nombre="params"):
+        pickle.dump(self.w, open(nombre + ".pickle", "wb"))
+        
+    def load_params(self, nombre="params"):
+        self.w = pickle.load(open(nombre + ".pickle"), "rb")
+
+--------------------- Escalón ---------------------
+class Clasificador:
+    
+    def __init__(self, learning_rate=0.01, n_iters=100):
+        self.lr = learning_rate
+        self.activation_function = self.escalon
+        self.n_iters = n_iters
+        self.bias = None
+        self.weights = None
+    
+    #Definición de la función de activación (escalón)
+    def escalon(self, x):
+        #Función de activación que pregunta si X cumple con la condición, retorna 1; caso contrario, retorna 0
+        return np.where(x >= 0, 1, 0)
+        
+    def fit(self, X, Y):
+        #Definición de filas y columnas para obtener la dimensión de X
+        filas, columnas = X.shape
+        
+        #Iniciación de los pesos
+        #Para cada columna, se le agrega un cero
+        self.weights = np.zeros(columnas)
+        self.bias = 0
+        
+        #Nos aseguramos que 'Y' solo contenga ceros y unos
+        y_ = np.array([1 if i > 0 else 0 for i in Y])
+        
+        for j in range(self.n_iters):
+            #Para iterar sobre el conjunto 'X', obteniendo el index del mismo, y el valor
+            for idx, x_i in enumerate(X):
+                linear_output = np.dot(x_i, self.weights) + self.bias
+                y_predicted = self.activation_function(linear_output)
+                #Actualización de los pesos
+                update = self.lr * (y_[idx] - y_predicted)
+                self.weights += update * x_i
+                self.bias += update
+            print("Iteración:", j)
+        
+    def predict(self, X):
+        #Aplicación de la función lineal (X traspuesta * pesos) + TODO//VER QUÉ ES BIAS
+        linear_output = np.dot(X, self.weights) + self.bias
+        #Aplicación de la función de activación
+        y_predicted = self.activation_function(linear_output)
+        return y_predicted
+
+    def save_params(self, nombre="params"):
+        pickle.dump(self.weights, open(nombre + ".pickle", "wb"))
+        
+    def load_params(self, nombre="params"):
+        self.weights = pickle.load(open(nombre + ".pickle"), "rb")
+        
+
+--------------------- Sigmoide ---------------------
+class Clasificador:
+    
+    def __init__(self, learning_rate=0.3, n_iters=1000):
+        self.lr = learning_rate
+        self.activation_function = self.sigmoid
+        self.sigmoid_derivative = self.sigmoid_derivative
+        self.n_iters = n_iters
+        self.bias = None
+        self.weights = None
+    
+    #Definición de la función de activación (escalón)
+    def escalon(self, x):
+        #Función de activación que pregunta si X cumple con la condición, retorna 1. Caso contrario, retorna 0
+        return np.where(x >= 0, 1, 0)
+    
+    def sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
+
+    def sigmoid_derivative(self, x):
+        return x * (1 - x)    
+        
+    def fit(self, X, Y):
+        #Definición de filas y columnas para obtener la dimensión de X
+        filas, columnas = X.shape
+        
+        #Iniciación de los pesos
+        #Para cada feature, se le agrega un cero
+        self.weights = np.zeros(columnas)
+        self.bias = 0
+        
+        #Nos aseguramos que 'Y' solo contenga ceros y unos
+        y_ = np.array([1 if i > 0 else 0 for i in Y])
+        
+        for _ in range(self.n_iters):
+            #Para iterar sobre el conjunto 'X', obteniendo el index del mismo, y el valor
+            for idx, x_i in enumerate(X):
+                y_predicted = self.sigmoid(np.dot(x_i, self.weights))
+                error = x_i - y_predicted
+                update = error * self.sigmoid_derivative(y_predicted)
+                self.weights += np.dot(x_i.T, update)
+        
+    def predict(self, X):
+        #Aplicación de la función lineal (X traspuesta * pesos) + TODO//VER QUÉ ES BIAS
+        linear_output = np.dot(X, self.weights) + self.bias
+        #Aplicación de la función de activación
+        y_predicted = self.activation_function(linear_output)
+        return y_predicted
+
+    def save_params(self, nombre="params"):
+        pickle.dump(self.weights, open(nombre + ".pickle", "wb"))
+        
+    def load_params(self, nombre="params"):
+        self.weights = pickle.load(open(nombre + ".pickle"), "rb")
+		
+		
+--------------------- Hiperbólica ---------------------
+
+class Clasificador:
+    
+    def __init__(self, learning_rate=0.0024, n_iters=1000):
+        self.lr = learning_rate
+        self.activation_function = self.escalon
+        self.n_iters = n_iters
+        self.bias = None
+        self.weights = None
+    
+    #Definición de la función de activación (escalón)
+    def escalon(self, x):
+        #Función de activación que pregunta si X cumple con la condición, retorna 1; caso contrario, retorna 0
+        #return np.where(x >= 0, 1, 0)
+        return (((np.exp(x))-np.exp(-x))/((np.exp(x))+(np.exp(-x))))
+        
+    def fit(self, X, Y):
+        #Definición de filas y columnas para obtener la dimensión de X
+        filas, columnas = X.shape
+        
+        #Iniciación de los pesos
+        #Para cada columna, se le agrega un cero
+        self.weights = np.zeros(columnas)
+        self.bias = 0
+        
+        #Nos aseguramos que 'Y' solo contenga ceros y unos
+        y_ = np.array([1 if i > 0 else 0 for i in Y])
+        
+        for j in range(self.n_iters):
+            #Para iterar sobre el conjunto 'X', obteniendo el index del mismo, y el valor
+            for idx, x_i in enumerate(X):
+                linear_output = np.dot(x_i, self.weights) + self.bias
+                y_predicted = self.activation_function(linear_output)
+                #Actualización de los pesos
+                update = self.lr * (y_[idx] - y_predicted)
+                self.weights += update * x_i
+                self.bias += update
+            if j % 100 == 0:
+                print("Iteración:", j)
+        
+    def predict(self, X):
+        #Aplicación de la función lineal (X traspuesta * pesos) + TODO//VER QUÉ ES BIAS
+        linear_output = np.dot(X, self.weights) + self.bias
+        #Aplicación de la función de activación
+        y_predicted = self.activation_function(linear_output)
+        return y_predicted
+
+    def save_params(self, nombre="params"):
+        pickle.dump(self.weights, open(nombre + ".pickle", "wb"))
+        
+    def load_params(self, nombre="params"):
+        self.weights = pickle.load(open(nombre + ".pickle"), "rb")
+        
+		
+		
+		
+--------------------- Final ---------------------
+		
+clasif = Clasificador()
+clasif.fit(X,Y)
+res = clasif.predict(X)
+
+# Evaluación del clasificador para los datos de entrenamiento
+cant_datos = X.shape[0]
+accuracy = (cant_datos - abs(res - Y).sum())/cant_datos
+print("Precisión:", accuracy)
+
+# Evaluación con datos de test (no cátedra)....		
